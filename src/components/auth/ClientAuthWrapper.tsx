@@ -5,7 +5,7 @@ import { initSuperTokens } from "@/config/supertokens";
 import { SessionAuth } from "supertokens-auth-react/recipe/session";
 import { usePathname } from "next/navigation";
 
-// Paths that don't require authentication
+// Define paths that don't require authentication
 const unprotectedPaths = [
   "/auth",
   "/auth/signin",
@@ -13,29 +13,38 @@ const unprotectedPaths = [
   "/auth/reset-password",
 ];
 
-export function AuthWrapper({ children }: { children: React.ReactNode }) {
+export default function ClientAuthWrapper({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const [isClientLoaded, setIsClientLoaded] = useState(false);
   const pathname = usePathname();
-  // const router = useRouter();
-  const [isInitialized, setIsInitialized] = useState(false);
 
+  // Initialize SuperTokens on the client side only
   useEffect(() => {
     if (typeof window !== "undefined") {
       // Initialize SuperTokens
       initSuperTokens();
-      setIsInitialized(true);
+      setIsClientLoaded(true);
     }
   }, []);
-
-  // Show a minimal loading state during initialization
-  if (!isInitialized) {
-    return null;
-  }
 
   // Check if current path requires authentication
   const requiresAuth = pathname
     ? !unprotectedPaths.some((path) => pathname.startsWith(path))
     : false;
 
-  // Return appropriate content based on authentication requirements
+  // Handle loading state during client-side initialization
+  if (!isClientLoaded) {
+    // Return a simple loading indicator that matches what the server would render
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  // Return authenticated or non-authenticated content
   return requiresAuth ? <SessionAuth>{children}</SessionAuth> : children;
 }
